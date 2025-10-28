@@ -15,16 +15,16 @@ setup(
     zip_safe=True,
     maintainer='student',
     maintainer_email='student@todo.todo',
-    description='TODO: Package description',
+    description='Hand Solo robot arm control nodes including articulation and pick-place behaviors',
     license='TODO: License declaration',
     extras_require={
-        'test': [
-            'pytest',
-        ],
+        'test': ['pytest'],
     },
     entry_points={
         'console_scripts': [
-        	'hs_pick_palce = hand_solo_arm.hs_pick_place:main'
+            # Existing pick-place node
+            'hs_pick_place = hand_solo_arm.hs_pick_place:main',
         ],
     },
 )
+

@@ -2,22 +2,20 @@ from launch import LaunchDescription
 from launch_ros.actions import Node, LifecycleNode
 from launch_ros.substitutions import FindPackageShare
 from launch.substitutions import PathJoinSubstitution
-from launch.actions import DeclareLaunchArgument, GroupAction
+from launch.actions import DeclareLaunchArgument
 from launch.substitutions import LaunchConfiguration
 
 def generate_launch_description():
     # Package paths
     pkg_share = FindPackageShare('hand_solo_virtual_nav')
-    
+
     # File paths
     rviz_cfg = PathJoinSubstitution([pkg_share, 'rviz', 'pa_rviz_nav2.rviz'])
     map_yaml = PathJoinSubstitution([pkg_share, 'map', 'pa_warehouse_map_01.yaml'])
     nav2_params = PathJoinSubstitution([pkg_share, 'config', 'pa_nav2_params.yaml'])
-    
-    # Launch arguments (optional - for flexibility)
+
+    # Launch arguments
     use_sim_time = LaunchConfiguration('use_sim_time', default='false')
-    
-    # Declare launch arguments
     declare_use_sim_time = DeclareLaunchArgument(
         'use_sim_time',
         default_value='false',
@@ -31,13 +29,13 @@ def generate_launch_description():
         name='static_base_to_lidar',
         arguments=[
             '0', '0', '0',           # x y z
-            '1', '0', '0', '0',      # qx qy qz qw 
+            '1', '0', '0', '0',      # qx qy qz qw
             'virtual_hand_solo/base_link',
             'virtual_hand_solo/lidar_link'
         ]
     )
 
-    # Map Server - Lifecycle Node
+    # Nav2 lifecycle nodes
     map_server = LifecycleNode(
         package='nav2_map_server',
         executable='map_server',
@@ -46,12 +44,10 @@ def generate_launch_description():
         output='screen',
         parameters=[
             nav2_params,
-            {'yaml_filename': map_yaml,
-             'use_sim_time': use_sim_time}
+            {'yaml_filename': map_yaml, 'use_sim_time': use_sim_time}
         ]
     )
 
-    # AMCL - Lifecycle Node
     amcl = LifecycleNode(
         package='nav2_amcl',
         executable='amcl',
@@ -64,7 +60,6 @@ def generate_launch_description():
         ]
     )
 
-    # Controller Server - Lifecycle Node
     controller_server = LifecycleNode(
         package='nav2_controller',
         executable='controller_server',
@@ -77,7 +72,6 @@ def generate_launch_description():
         ]
     )
 
-    # Planner Server - Lifecycle Node
     planner_server = LifecycleNode(
         package='nav2_planner',
         executable='planner_server',
@@ -90,7 +84,6 @@ def generate_launch_description():
         ]
     )
 
-    # Behavior Server - Lifecycle Node
     behavior_server = LifecycleNode(
         package='nav2_behaviors',
         executable='behavior_server',
@@ -103,7 +96,6 @@ def generate_launch_description():
         ]
     )
 
-    # BT Navigator - Lifecycle Node
     bt_navigator = LifecycleNode(
         package='nav2_bt_navigator',
         executable='bt_navigator',
@@ -116,7 +108,6 @@ def generate_launch_description():
         ]
     )
 
-    # Waypoint Follower - Lifecycle Node
     waypoint_follower = LifecycleNode(
         package='nav2_waypoint_follower',
         executable='waypoint_follower',
@@ -129,7 +120,6 @@ def generate_launch_description():
         ]
     )
 
-    # Velocity Smoother - Lifecycle Node
     velocity_smoother = LifecycleNode(
         package='nav2_velocity_smoother',
         executable='velocity_smoother',
@@ -146,7 +136,6 @@ def generate_launch_description():
         ]
     )
 
-    # Lifecycle Manager for Localization
     lifecycle_manager_localization = Node(
         package='nav2_lifecycle_manager',
         executable='lifecycle_manager',
@@ -159,7 +148,6 @@ def generate_launch_description():
         ]
     )
 
-    # Lifecycle Manager for Navigation
     lifecycle_manager_navigation = Node(
         package='nav2_lifecycle_manager',
         executable='lifecycle_manager',
@@ -179,7 +167,7 @@ def generate_launch_description():
         ]
     )
 
-    # RViz2
+    # RViz
     rviz = Node(
         package='rviz2',
         executable='rviz2',
@@ -189,37 +177,43 @@ def generate_launch_description():
         output='screen'
     )
 
-    # Existing GoToBoxPosition node
-    go_to_box_node = Node(
-        package='hand_solo_virtual_nav',
-        executable='hs_waypoint_follower',
-        name='go_to_box_position',
+    # Main control node
+    main_control_node = Node(
+        package='major_tom',
+        executable='main_control',
+        name='main_control_node',
         output='screen',
         parameters=[{'use_sim_time': use_sim_time}]
     )
 
-    # --- NEW NODE: BoxToBowiePublisher ---
-    box_to_bowie_node = Node(
-        package='major_tom',
-        executable='main_control',
-        name='BoxToBowiePublisher',
+    # Navigation Node
+    go_to_position = Node(
+        package='hand_solo_virtual_nav',
+        executable='hs_waypoint_follower',
+        name='go_to_position',
+        output='screen',
+        parameters=[{'use_sim_time': use_sim_time}]
+    )
+
+    # Articulation Node
+    go_to_articulation = Node(
+        package='hand_solo_arm',
+        executable='hs_pick_place',
+        name='go_to_articulation',
         output='screen',
         parameters=[{'use_sim_time': use_sim_time}]
     )
 
     return LaunchDescription([
-        # Launch arguments
         declare_use_sim_time,
-        
-        # TF
         static_tf,
-        
-        # Localization Stack
+
+        # Localization
         map_server,
         amcl,
         lifecycle_manager_localization,
-        
-        # Navigation Stack
+
+        # Navigation
         controller_server,
         planner_server,
         behavior_server,
@@ -227,12 +221,13 @@ def generate_launch_description():
         waypoint_follower,
         velocity_smoother,
         lifecycle_manager_navigation,
-        
+
         # Visualization
         rviz,
 
         # Custom Nodes
-        go_to_box_node,
-        box_to_bowie_node
+        go_to_articulation,
+        main_control_node,
+        go_to_position
     ])
 

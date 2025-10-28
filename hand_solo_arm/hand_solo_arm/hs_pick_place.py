@@ -1,104 +1,108 @@
 #!/usr/bin/env python3
-import time
 from typing import List
-
 import rclpy
 from rclpy.node import Node
+from std_msgs.msg import String
 from rclpy.action import ActionClient
 from moveit_msgs.action import MoveGroup
 from moveit_msgs.msg import MotionPlanRequest, Constraints, JointConstraint
 
-class HSWaypointRunner(Node):
-    """Minimal: define a waypoint, execute, wait; then define the next one."""
+# -----------------------
+# Helper functions
+# -----------------------
+def create_goal(joint_names: List[str], joints: List[float], planning_group: str) -> MoveGroup.Goal:
+    """Convert a list of joint angles into a MoveGroup goal."""
+    goal = MoveGroup.Goal()
+    req = MotionPlanRequest()
+    req.group_name = planning_group
+    req.num_planning_attempts = 10
+    req.allowed_planning_time = 5.0
+    req.max_velocity_scaling_factor = 0.5
+    req.max_acceleration_scaling_factor = 0.5
 
-    JOINT_NAMES: List[str] = ['joint_1','joint_2','joint_3','joint_4','joint_5','joint_6']
-    PLANNING_GROUP: str = 'tmr_arm'
-    ACTION_NAME: str = '/move_action'  # keep identical to your setup
+    cs = Constraints()
+    for name, val in zip(joint_names, joints):
+        jc = JointConstraint()
+        jc.joint_name = name
+        jc.position = val
+        jc.tolerance_above = 0.01
+        jc.tolerance_below = 0.01
+        jc.weight = 1.0
+        cs.joint_constraints.append(jc)
 
-    def __init__(self):
-        super().__init__('hs_waypoint_runner')
-        self.client = ActionClient(self, MoveGroup, self.ACTION_NAME)
-        self.get_logger().info('Waiting for MoveGroup action server...')
-        self.client.wait_for_server()
-        self.get_logger().info('MoveGroup action server ready.')
+    req.goal_constraints.append(cs)
+    goal.request = req
+    goal.planning_options.plan_only = False
+    return goal
 
-    # --- helpers --------------------------------------------------------------
-    def _goal_from_joints(self, joints: List[float]) -> MoveGroup.Goal:
-        goal = MoveGroup.Goal()
-        req = MotionPlanRequest()
-        req.group_name = self.PLANNING_GROUP
-        req.num_planning_attempts = 10
-        req.allowed_planning_time = 5.0
-        req.max_velocity_scaling_factor = 0.5
-        req.max_acceleration_scaling_factor = 0.5
+# -----------------------
+# Main function
+# -----------------------
+def main():
+    rclpy.init()
+    node = rclpy.create_node('go_to_articulation')  # node initialization
 
-        cs = Constraints()
-        for name, val in zip(self.JOINT_NAMES, joints):
-            jc = JointConstraint()
-            jc.joint_name = name
-            jc.position = val
-            jc.tolerance_above = 0.01
-            jc.tolerance_below = 0.01
-            jc.weight = 1.0
-            cs.joint_constraints.append(jc)
+    JOINT_NAMES = ['joint_1','joint_2','joint_3','joint_4','joint_5','joint_6']
+    PLANNING_GROUP = 'tmr_arm'
+    ACTION_NAME = '/move_action'
+    client = ActionClient(node, MoveGroup, ACTION_NAME)
 
-        req.goal_constraints.append(cs)
-        goal.request = req
-        goal.planning_options.plan_only = False  # plan + execute
-        return goal
+    node.get_logger().info("Waiting for MoveGroup action server")
+    client.wait_for_server()
 
-    def _send_and_wait(self, joints: List[float]) -> bool:
-        goal = self._goal_from_joints(joints)
-        send_fut = self.client.send_goal_async(goal)
-        rclpy.spin_until_future_complete(self, send_fut)
-        handle = send_fut.result()
-        if not handle or not handle.accepted:
-            self.get_logger().error('Goal rejected.')
-            return False
-        res_fut = handle.get_result_async()
-        rclpy.spin_until_future_complete(self, res_fut)
-        res = res_fut.result()
-        return bool(res and res.status == 4)  # 4 = STATUS_SUCCEEDED
+    # Poses
+    POSES = {
+        "static": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+        "carry": [0.349066, -1.178097263394773, 2.356, 0.0, 0.0, 0.0],
+        "place": [0.0, 0.785, 0.785, 0.0, 0.0, 0.0],
+        "reach": [0.0, 0.698132, 1.48353, 0.0, 0.0, 0.0]
+    }
 
-    # --- script-style sequence (no arrays, no names) --------------------------
-    def run(self):
-        # Waypoint 1
-        if not self._send_and_wait([0.0, 1.309, 0.436, 0.0, 0.0, 0.0]): return
-        time.sleep(10.0)
+    # -----------------------
+    # Asynchronous send_and_wait
+    # -----------------------
+    def send_and_wait(joints: List[float]) -> None:
+        goal = create_goal(JOINT_NAMES, joints, PLANNING_GROUP)
+        send_fut = client.send_goal_async(goal)
 
-        # Waypoint 2
-        if not self._send_and_wait([0.0, -0.785, 2.356, 0.0, 0.0, 0.0]): return
-        time.sleep(5)
+        def goal_response_callback(fut):
+            handle = fut.result()
+            if not handle.accepted:
+                node.get_logger().error('Goal rejected')
+                return
 
-        # Waypoint 3
-        if not self._send_and_wait([0.0, 0.785, 0.785, 0.0, 0.8, 0.0]): return
-        time.sleep(5)
+            res_fut = handle.get_result_async()
 
-        # Waypoint 4
-        if not self._send_and_wait([0.0, 1.309, 0.436, 0.0, 0.0, 0.0]): return
-        time.sleep(5)
+            def result_callback(res_fut_inner):
+                res = res_fut_inner.result()
+                if res.status == 3:  # SUCCEEDED
+                    node.get_logger().info('Pose executed successfully')
+                else:
+                    node.get_logger().error(f'Pose failed with status {res.status}')
 
-        # Waypoint 5
-        if not self._send_and_wait([0.0, -0.785, 2.356, 0.0, 0.0, 0.0]): return
-        time.sleep(5)
+            res_fut.add_done_callback(result_callback)
 
-        # Waypoint 6
-        if not self._send_and_wait([0.0, 0,785, 0.785, 0.0, 0.8, 0.0]): return
-        time.sleep(5)
+        send_fut.add_done_callback(goal_response_callback)
 
-        self.get_logger().info('Sequence complete ✅')
+    # -----------------------
+    # Subscriber callback
+    # -----------------------
+    def articulation_callback(msg: String):
+        command = msg.data.strip().lower()
+        if command not in POSES:
+            node.get_logger().warn(f"Unknown articulation command '{command}'")
+            return
+        node.get_logger().info(f"Executing pose '{command}' joints: {POSES[command]}")
+        send_and_wait(POSES[command])
 
+    # Subscriber: listens to bowie_articulation
+    node.create_subscription(String, 'bowie_articulation', articulation_callback, 10)
+    node.get_logger().info("Listening for /bowie_articulation commands...")
 
-def main(args=None):
-    rclpy.init(args=args)
-    node = HSWaypointRunner()
-    try:
-        node.run()
-    except KeyboardInterrupt:
-        node.get_logger().info('Interrupted by user.')
-    finally:
-        node.destroy_node()
-        rclpy.shutdown()
+    rclpy.spin(node)
+    node.destroy_node()  # node shutdown
+    rclpy.shutdown()
 
 if __name__ == '__main__':
     main()
+
