@@ -1,0 +1,16 @@
+Acknowledgement:
+I have used the following Generative Artificial Intelligence (GenAI) tools/services in the preparation of this assessment: 
+
+- GenAI service name and version: ChatGPT (GPT-5) 
+- Link to the GenAI service: https://chat.openai.com 
+- Ways this GenAI service was used: 
+  - Error Identification: Identifying errors from scripts and terminal outputs to identify dysfunctional communication between Ros2 nodes. 
+  - Terminal Search Tool: To find terminal commands for the install of necessary PKGs such as Ros2 and Colcon. 
+  - Suggested Solutions: Using proposed methods to solve errors post the identification process. No code was copied from generative AI but the proposed methods were independently programmed and implemented. 
+
+I confirm that I have not used GenAI in the preparation of this assessment for any purpose other than what I have acknowledged above and I have cited and referenced any GenAI content in my assessment submission, applying the relevant referencing style. I understand that providing false or misleading information in this Gen AI Acknowledgement Statement may constitute a breach of the University of Canberra (Student Conduct) Rules 2023. 
+
+Refrences
+- ChatGPT (GPT-5), 'You need asynchronous handling for the action so your subscriber keeps receiving messages.', from request ' for some reason this node is not responding to a second msg: {prototype articulation node script} ', 10:30pm, Oct. 22, 2025. 
+- M. Jayasuriya. hs_pick_place. (2025). UCLearn. Accessed: Oct 13, 2025. Available: https://uclearn.canberra.edu.au/courses/18557/files/6306826?module_item_id=1548511 
+- M. Jayasuriya. Hs_waypoint_follower. (2025). UCLearn Accessed Oct 6, 2025. Available: https://uclearn.canberra.edu.au/courses/18557/files/6246095?module_item_id=1544266 
