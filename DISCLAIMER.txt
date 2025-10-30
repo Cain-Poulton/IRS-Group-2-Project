@@ -10,7 +10,8 @@ I have used the following Generative Artificial Intelligence (GenAI) tools/servi
 
 I confirm that I have not used GenAI in the preparation of this assessment for any purpose other than what I have acknowledged above and I have cited and referenced any GenAI content in my assessment submission, applying the relevant referencing style. I understand that providing false or misleading information in this Gen AI Acknowledgement Statement may constitute a breach of the University of Canberra (Student Conduct) Rules 2023. 
 
-Refrences
+References
 - ChatGPT (GPT-5), 'You need asynchronous handling for the action so your subscriber keeps receiving messages.', from request ' for some reason this node is not responding to a second msg: {prototype articulation node script} ', 10:30pm, Oct. 22, 2025. 
 - M. Jayasuriya. hs_pick_place. (2025). UCLearn. Accessed: Oct 13, 2025. Available: https://uclearn.canberra.edu.au/courses/18557/files/6306826?module_item_id=1548511 
+
 - M. Jayasuriya. Hs_waypoint_follower. (2025). UCLearn Accessed Oct 6, 2025. Available: https://uclearn.canberra.edu.au/courses/18557/files/6246095?module_item_id=1544266 
